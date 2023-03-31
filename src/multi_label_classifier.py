@@ -5,6 +5,7 @@ import torchvision.transforms as transforms
 import numpy as np
 from PIL import Image
 import torch.utils.data as data
+from itertools import combinations
 
 def data_mean_std(image_dir):
     """A helper function to determine the mean and std of the dataset
@@ -44,6 +45,29 @@ def data_mean_std(image_dir):
     gray_std = np.std(gray_img)
     print(f'Color images: {color_images}, gray scale images {gray_images}')
     return rgb_mean, rgb_std, gray_mean, gray_std, color_images, gray_images
+
+def test_multilabels(root_dir):
+    """
+    Helper function to test for the presence of multilabels
+    """
+    item_classes = {}
+    num_of_classes = len(os.listdir(os.path.join(root_dir, "annotations")))
+    print(f'Number of classes: {num_of_classes}')
+    for class_name in os.listdir(os.path.join(root_dir, "annotations")):
+        if class_name.endswith('.txt'):
+            label = class_name.split('.')[0]
+            with open(os.path.join(root_dir, "annotations", class_name)) as f:
+                      images = [int(line.strip()) for line in f.readlines()]
+                      item_classes[label]=images
+    labels = list(item_classes.keys())
+    pairs = combinations(labels, 2)
+    for pair in pairs:
+        # images with multi-labels in these classes
+        num_multi_label = len(set(item_classes[pair[0]]) &
+                              set(item_classes[pair[1]]))
+        print(f'{num_multi_label} images have labels '
+              f'{pair[0]} and {pair[1]}')
+    return
 
 def transform_data():
     """
@@ -105,35 +129,57 @@ class CustomDataset(data.Dataset):
         # Create a dictionary containing the image and the label
         return {'images': image, 'labels': label}
 
+def epoch_time(start_time, end_time):
+    """Calcuate the time a training epoch took to train"""
+    elapsed_time = end_time - start_time
+    elapsped_mins = int(elapsed_time / 60)
+    elapsed_secs = int(elapsed_time = elapsed_mins ( 60))
+    return elapsed_mins, elapsed_secs
+
+def train_model(loader):
+    """
+    Train a multi-label model
+    """
+    # Initialize model
+
+    # Define loss function and optimizer
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+
+    # Train model
+    model.train()
+    for i, batch in enumerate(loader):
+        pass
 
 if __name__ == '__main__':
     # res = data_mean_std('../images')
-    # # rgb_mean, rgb_std, gray_mean, gray_std, color_images, gray_images
     # print(f'rgb mean {res[0]}, rgd_std {res[1]}')
     # print(f'gray mean {res[2]}, gray std {res[3]}')
     # print(f'Color images {res[4]}, gray images {res[5]}')
     validation_split = 0.2
 
     # create a dataset object
-    dataset = CustomDataset('./', transform=transform_data())
-    print(f'Length of dataset {len(dataset)}')
+    # dataset = CustomDataset('./', transform=transform_data())
+    # print(f'Length of dataset {len(dataset)}')
 
-    # Split the data into train and test sets
-    dataset_size = len(dataset)
-    indices = list(range(dataset_size))
-    split = int(np.floor(validation_split * dataset_size))
+    # # Split the data into train and test sets
+    # dataset_size = len(dataset)
+    # indices = list(range(dataset_size))
+    # split = int(np.floor(validation_split * dataset_size))
 
-    # way or may not want to shuffle due to class imbalance
-    # np.random.shuffle(indices) 
-    train_indices, validation_indices = indices[split:], indices[:split]
+    # # way or may not want to shuffle due to class imbalance
+    # # np.random.shuffle(indices)
+    # train_indices, validation_indices = indices[split:], indices[:split]
 
-    train_sampler = data.SubsetRandomSampler(train_indices)
-    validation_sampler = data.SubsetRandomSampler(validation_indices)
+    # train_sampler = data.SubsetRandomSampler(train_indices)
+    # validation_sampler = data.SubsetRandomSampler(validation_indices)
 
-    # Create the dataloaders
-    trainloader = torch.utils.data.DataLoader(dataset, batch_size=2, sampler=train_sampler)
-    testloader = torch.utils.data.DataLoader(dataset, batch_size=2, sampler=validation_sampler)
+    # # Create the dataloaders
+    # trainloader = torch.utils.data.DataLoader(dataset, batch_size=2, sampler=train_sampler)
+    # testloader = torch.utils.data.DataLoader(dataset, batch_size=2, sampler=validation_sampler)
 
-    for i, batch in enumerate(trainloader):
-        print(f'Batch number {i}: {batch.keys()}')
-        break
+    # for i, batch in enumerate(trainloader):
+    #     print(f'Batch number {i}: {batch.keys()}')
+    #     break
+
+    test_multilabels('./')
