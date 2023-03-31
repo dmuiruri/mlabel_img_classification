@@ -44,57 +44,66 @@ def data_mean_std(image_dir):
     gray_std = np.std(gray_img)
     print(f'Color images: {color_images}, gray scale images {gray_images}')
     return rgb_mean, rgb_std, gray_mean, gray_std, color_images, gray_images
-    
-class CustomDataset(data.Dataset):
-    def __init__(self, images_dir, annotations_dir):
-        self.images_dir = images_dir
-        self.annotations_dir = annotations_dir
-        self.image_filenames = []
-        self.annotations = []
-        self.filename_to_annotation = {}
-        self.transform = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.Normalize(mean=[116.022, 106.491, 95.719], std=[75.824, 72.377, 74.867]),
-            transforms.ToTensor()
-            ])
 
-        # Create a list of image filenames
-        for filename in os.listdir(self.annotations_dir):
+def transform_data():
+    """
+    Perform transformations of the data
+    """
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[116.022, 106.491, 95.719], std=[75.824, 72.377, 74.867]),
+    ])
+    return transform
+
+class CustomDataset(data.Dataset):
+    def __init__(self, root_dir, transform=None):
+        self.root_dir = root_dir
+        self.transform = transform
+        self.filename_to_class = {}
+        self.classname_to_filenames = {}
+
+        # Create a dictionary mapping image filename to their class labels
+        for class_name in os.listdir(os.path.join(self.root_dir, "annotations")):
+            if class_name.endswith(".txt"):
+                with open(os.path.join(self.root_dir, "annotations", class_name), "r") as f:
+                    images = f.readlines()
+                    images = [int(x.strip()) for x in images]
+                for image in images:
+                    image_filename = "im{}.jpg".format(image)
+                    self.filename_to_class[image_filename] = class_name.split(".")[0]
+
+        # Create a dictionary mapping classnames to the list of image filenames
+        for filename in os.listdir(os.path.join(self.root_dir, "annotations")):
             if filename.endswith(".txt"):
-                self.image_filenames.append(filename)
-        # Read the annoations files and store the annotations in a list
-        for filename in os.listdir(self.annotations_dir):
-            if filename.endswith(".txt"):
-                with open(os.path.join(self.annotations_dir, filename), 'r') as f:
-                    annotations = f.readlines()
-                    annotations = [int(line.strip()) for line in annotations]
-                    image_filename = "{}".format(filename.split(".")[0])
-                    self.filename_to_annotation[image_filename] = annotations
+                class_name = os.path.splitext(filename)[0]
+                with open(os.path.join(self.root_dir, "annotations", filename)) as f:
+                          image_numbers = f.readlines()
+                          image_filenames = ["im{}.jpg".format(n.strip()) for n in image_numbers]
+                          self.classname_to_filenames[class_name] = image_filenames
 
     def __len__(self):
         """The size of the dataset"""
-        return len(os.listdir(self.images_dir))
+        return len(self.filename_to_class)
 
     def __getitem__(self, index):
-        """Get a specific image
+        """Get a specific image and label
 
         Read the corresponding image and convert it into a PyTorch
         Tensor
 
         """
-        filename = self.image_filenames[index + 1]
-        filename = os.path.splitext(filename)[0]
-        image_path = os.path.join(self.images_dir, filename + '.jpg')
+        filename = list(self.filename_to_class.keys())[index]
+        image_path = os.path.join(self.root_dir, "images", filename)
         image = Image.open(image_path).convert('RGB')
-        annotation = self.filename_to_annotation[filename]
+        label = self.filename_to_class[filename]
 
-        # Apply transformations also transforms to tensor
-        image = self.transform(image)
+        # Apply transformations
+        if self.transform:
+            image = self.transform(image)
 
-        # Create a dictionary containing the image and the annotation
-        sample = {'image': image, 'annotation': annotation}
-        print(f'index {index} retrived')
-        return sample
+        # Create a dictionary containing the image and the label
+        return {'images': image, 'labels': label}
 
 
 if __name__ == '__main__':
@@ -105,11 +114,13 @@ if __name__ == '__main__':
     # print(f'Color images {res[4]}, gray images {res[5]}')
 
     # create a dataset object
-    dataset = CustomDataset('../images', '../annotations')
+    dataset = CustomDataset('./', transform=transform_data())
+    print(f'Length of dataset {len(dataset)}')
 
     # create a dataloader object
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=True)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True)
 
     for i, batch in enumerate(dataloader):
-        batch.shape()
+        print(f'Batch number {i}')
+        print(f'batch: {batch.keys()}')
         break
