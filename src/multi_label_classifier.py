@@ -7,8 +7,8 @@ from PIL import Image
 import torch.utils.data as data
 
 def data_mean_std(image_dir):
-    """
-    Generate the mean and std of the dataset
+    """A helper function to determine the mean and std of the dataset
+
     """
     image_dir = os.path.realpath(image_dir)
 
@@ -112,15 +112,28 @@ if __name__ == '__main__':
     # print(f'rgb mean {res[0]}, rgd_std {res[1]}')
     # print(f'gray mean {res[2]}, gray std {res[3]}')
     # print(f'Color images {res[4]}, gray images {res[5]}')
+    validation_split = 0.2
 
     # create a dataset object
     dataset = CustomDataset('./', transform=transform_data())
     print(f'Length of dataset {len(dataset)}')
 
-    # create a dataloader object
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True)
+    # Split the data into train and test sets
+    dataset_size = len(dataset)
+    indices = list(range(dataset_size))
+    split = int(np.floor(validation_split * dataset_size))
 
-    for i, batch in enumerate(dataloader):
-        print(f'Batch number {i}')
-        print(f'batch: {batch.keys()}')
+    # way or may not want to shuffle due to class imbalance
+    # np.random.shuffle(indices) 
+    train_indices, validation_indices = indices[split:], indices[:split]
+
+    train_sampler = data.SubsetRandomSampler(train_indices)
+    validation_sampler = data.SubsetRandomSampler(validation_indices)
+
+    # Create the dataloaders
+    trainloader = torch.utils.data.DataLoader(dataset, batch_size=2, sampler=train_sampler)
+    testloader = torch.utils.data.DataLoader(dataset, batch_size=2, sampler=validation_sampler)
+
+    for i, batch in enumerate(trainloader):
+        print(f'Batch number {i}: {batch.keys()}')
         break
