@@ -96,21 +96,26 @@ def transform_data():
     return transform
 
 class CustomDataset(data.Dataset):
-    def __init__(self, root_dir, transform=None):
+    def __init__(self, root_dir):
         self.root_dir = root_dir
-        self.transform = transform
         self.filename_to_class = {}
         self.classname_to_filenames = {}
+        self.transform = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[116.022, 106.491, 95.719],
+                                 std=[75.824, 72.377, 74.867]),
+        ])
 
         # Create a dictionary mapping image filename to their class labels
-        for class_name in os.listdir(os.path.join(self.root_dir, "annotations")):
-            if class_name.endswith(".txt"):
-                with open(os.path.join(self.root_dir, "annotations", class_name), "r") as f:
-                    images = f.readlines()
-                    images = [int(x.strip()) for x in images]
-                for image in images:
-                    image_filename = "im{}.jpg".format(image)
-                    self.filename_to_class[image_filename] = class_name.split(".")[0]
+        # for class_name in os.listdir(os.path.join(self.root_dir, "annotations")):
+        #     if class_name.endswith(".txt"):
+        #         with open(os.path.join(self.root_dir, "annotations", class_name), "r") as f:
+        #             images = f.readlines()
+        #             images = [int(x.strip()) for x in images]
+        #         for image in images:
+        #             image_filename = "im{}.jpg".format(image)
+        #             self.filename_to_class[image_filename] = class_name.split(".")[0]
 
         # Create a dictionary mapping classnames to the list of image filenames
         for filename in os.listdir(os.path.join(self.root_dir, "annotations")):
@@ -121,21 +126,47 @@ class CustomDataset(data.Dataset):
                           image_filenames = ["im{}.jpg".format(n.strip()) for n in image_numbers]
                           self.classname_to_filenames[class_name] = image_filenames
 
+        # Create a dictionary mapping image filename to their class labels
+
+        # Explored this approach but realized there are some unlabeled
+        # images in the dataset so its easier to pick images from the
+        # annotation files.
+        
+        # for image_file in os.listdir(os.path.join(self.root_dir, "images")):
+        #     labels = []
+        #     for key in self.classname_to_filenames.keys():
+        #         if image_file in self.classname_to_filenames[key]:
+        #             labels.append(key)
+        #     print(f'{(image_file, labels)}')
+        #     self.filename_to_class[image_file] = labels
+
         # Create a dictionary with multi labels
-        # for class_name in os.listdir(os.path.join(self.root_dir, "annotations")):
-        #     if class_name.endswith(".txt"):
-        #         with open(os.path.join(self.root_dir, "annotations", class_name), "r") as f:
-        #             images = f.readlines()
-        #             images = [int(x.strip()) for x in images]
-        #         for image in images:
-        #             labels = []
-        #             image_filename = "im{}.jpg".format(image)
-        #             # check if image is in a class and store the label of that class
-        #             for key in self.classname_to_filenames:
-        #                 if image_filename in self.classname_to_filenames[key]:
-        #                     labels.append(key)
-        #             self.filename_to_class[image_filename] = labels #class_name.split(".")[0]
-        print(self.filename_to_class[list(self.filename_to_class.keys())[0]])
+        for class_name in os.listdir(os.path.join(self.root_dir, "annotations")):
+            if class_name.endswith(".txt"):
+                with open(os.path.join(self.root_dir, "annotations", class_name), "r") as f:
+                    images = f.readlines()
+                    images = [int(x.strip()) for x in images]
+                for image in images:
+                    labels = []
+                    image_filename = "im{}.jpg".format(image)
+                    # check if image is in a class and store the label of that class
+                    for key in self.classname_to_filenames:
+                        if image_filename in self.classname_to_filenames[key]:
+                            labels.append(key)
+                    self.filename_to_class[image_filename] = labels #class_name.split(".")[0]
+        print(f'show a sample labels {self.filename_to_class[list(self.filename_to_class.keys())[0]]}')
+
+        # Check that all images have the same size
+        # TODO: Check this code
+        image_sizes = set()
+        for filename in self.filename_to_class:
+            image_path = os.path.join(self.root_dir, "images", filename)
+            with Image.open(image_path) as img:
+                image_sizes.add(img.size)
+        if len(image_sizes) > 1:
+            raise ValueError("Images have different sizes")
+
+
 
     def __len__(self):
         """The size of the dataset"""
@@ -154,8 +185,8 @@ class CustomDataset(data.Dataset):
         label = self.filename_to_class[filename]
 
         # Apply transformations
-        if self.transform:
-            image = self.transform(image)
+        image = transforms.Resize((224, 224))(image)
+        image = self.transform(image)
 
         # Create a dictionary containing the image and the label
         return {'images': image, 'labels': label}
@@ -189,34 +220,34 @@ if __name__ == '__main__':
     # print(f'Color images {res[4]}, gray images {res[5]}')
 
     # check_multilabels('./')
-    check_duplicate_images('.')
+    # check_duplicate_images('.')
 
-    # validation_split = 0.2
+    validation_split = 0.2
 
-    # # Create a dataset object
-    # dataset = CustomDataset('./', transform=transform_data())
-    # print(f'Length of dataset {len(dataset)}')
+    # Create a dataset object
+    dataset = CustomDataset('./')
+    print(f'Length of dataset {len(dataset)}')
 
-    # # Split the data into train and test sets
-    # dataset_size = len(dataset)
-    # indices = list(range(dataset_size))
-    # split = int(np.floor(validation_split * dataset_size))
+    # Split the data into train and test sets
+    dataset_size = len(dataset)
+    indices = list(range(dataset_size))
+    split = int(np.floor(validation_split * dataset_size))
 
-    # # way or may not want to shuffle due to class imbalance
-    # # np.random.shuffle(indices)
-    # train_indices, validation_indices = indices[split:], indices[:split]
+    # way or may not want to shuffle due to class imbalance
+    # np.random.shuffle(indices)
+    train_indices, validation_indices = indices[split:], indices[:split]
 
-    # train_sampler = data.SubsetRandomSampler(train_indices)
-    # validation_sampler = data.SubsetRandomSampler(validation_indices)
-    # print(f'Length of train set {len(train_sampler)} and validation set {len(validation_sampler)}')
-    # # Create the dataloaders
-    # trainloader = torch.utils.data.DataLoader(dataset, batch_size=2, sampler=train_sampler)
-    # testloader = torch.utils.data.DataLoader(dataset, batch_size=2, sampler=validation_sampler)
+    train_sampler = data.SubsetRandomSampler(train_indices)
+    validation_sampler = data.SubsetRandomSampler(validation_indices)
+    print(f'Length of train set {len(train_sampler)} and validation set {len(validation_sampler)}')
+    # Create the dataloaders
+    trainloader = torch.utils.data.DataLoader(dataset, batch_size=2, sampler=train_sampler)
+    testloader = torch.utils.data.DataLoader(dataset, batch_size=2, sampler=validation_sampler)
 
-    # for i, batch in enumerate(trainloader):
-    #     print(f'Batch number {i}: {batch.keys()}')
-    #     print(f'batch labels {batch["labels"]}')
-    #     print(f'{batch}')
-    #     if i == 3:
-    #         break
+    for i, batch in enumerate(trainloader):
+        print(f'Batch number {i}: {batch.keys()}')
+        print(f'batch labels {batch["labels"]}')
+        print(f'{batch}')
+        if i == 3:
+            break
 
