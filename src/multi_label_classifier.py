@@ -7,6 +7,8 @@ from PIL import Image
 import torch.utils.data as data
 from itertools import combinations
 
+print(f'PyTorch version {torch.__version__}')
+
 def data_mean_std(image_dir):
     """A helper function to determine the mean and std of the dataset
 
@@ -46,7 +48,7 @@ def data_mean_std(image_dir):
     print(f'Color images: {color_images}, gray scale images {gray_images}')
     return rgb_mean, rgb_std, gray_mean, gray_std, color_images, gray_images
 
-def test_multilabels(root_dir):
+def check_multilabels(root_dir):
     """
     Helper function to test for the presence of multilabels
     """
@@ -69,6 +71,18 @@ def test_multilabels(root_dir):
               f'{pair[0]} and {pair[1]}')
     return
 
+def check_duplicate_images(root_dir):
+    """
+    Check for duplicates of images
+    """
+    image_files = os.listdir(os.path.join(root_dir, "images"))
+    num_of_images = len(image_files)
+    num_image_non_duplicates = len(set(image_files))
+    if num_of_images == num_image_non_duplicates:
+        print(f"No duplicates {num_of_images} / {num_image_non_duplicates}")
+    else:
+        print(f'{num_of_images - num_image_non_duplicates} {num_of_images} / {num_image_non_duplicates}')
+
 def transform_data():
     """
     Perform transformations of the data
@@ -76,7 +90,8 @@ def transform_data():
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[116.022, 106.491, 95.719], std=[75.824, 72.377, 74.867]),
+        transforms.Normalize(mean=[116.022, 106.491, 95.719],
+                             std=[75.824, 72.377, 74.867]),
     ])
     return transform
 
@@ -105,6 +120,22 @@ class CustomDataset(data.Dataset):
                           image_numbers = f.readlines()
                           image_filenames = ["im{}.jpg".format(n.strip()) for n in image_numbers]
                           self.classname_to_filenames[class_name] = image_filenames
+
+        # Create a dictionary with multi labels
+        # for class_name in os.listdir(os.path.join(self.root_dir, "annotations")):
+        #     if class_name.endswith(".txt"):
+        #         with open(os.path.join(self.root_dir, "annotations", class_name), "r") as f:
+        #             images = f.readlines()
+        #             images = [int(x.strip()) for x in images]
+        #         for image in images:
+        #             labels = []
+        #             image_filename = "im{}.jpg".format(image)
+        #             # check if image is in a class and store the label of that class
+        #             for key in self.classname_to_filenames:
+        #                 if image_filename in self.classname_to_filenames[key]:
+        #                     labels.append(key)
+        #             self.filename_to_class[image_filename] = labels #class_name.split(".")[0]
+        print(self.filename_to_class[list(self.filename_to_class.keys())[0]])
 
     def __len__(self):
         """The size of the dataset"""
@@ -156,9 +187,13 @@ if __name__ == '__main__':
     # print(f'rgb mean {res[0]}, rgd_std {res[1]}')
     # print(f'gray mean {res[2]}, gray std {res[3]}')
     # print(f'Color images {res[4]}, gray images {res[5]}')
-    validation_split = 0.2
 
-    # create a dataset object
+    # check_multilabels('./')
+    check_duplicate_images('.')
+
+    # validation_split = 0.2
+
+    # # Create a dataset object
     # dataset = CustomDataset('./', transform=transform_data())
     # print(f'Length of dataset {len(dataset)}')
 
@@ -173,13 +208,15 @@ if __name__ == '__main__':
 
     # train_sampler = data.SubsetRandomSampler(train_indices)
     # validation_sampler = data.SubsetRandomSampler(validation_indices)
-
+    # print(f'Length of train set {len(train_sampler)} and validation set {len(validation_sampler)}')
     # # Create the dataloaders
     # trainloader = torch.utils.data.DataLoader(dataset, batch_size=2, sampler=train_sampler)
     # testloader = torch.utils.data.DataLoader(dataset, batch_size=2, sampler=validation_sampler)
 
     # for i, batch in enumerate(trainloader):
     #     print(f'Batch number {i}: {batch.keys()}')
-    #     break
+    #     print(f'batch labels {batch["labels"]}')
+    #     print(f'{batch}')
+    #     if i == 3:
+    #         break
 
-    test_multilabels('./')
