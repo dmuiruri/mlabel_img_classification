@@ -11,3 +11,7 @@ images/
 
 # Ignore emacs backup files
 *.*~
+
+# Ignore batch slurm files
+cv.err.*
+cv.out.*
