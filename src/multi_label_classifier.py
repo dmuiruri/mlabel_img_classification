@@ -2,6 +2,7 @@ import os
 import sys
 import torch
 import torchvision.transforms as transforms
+import torchvision.models as models
 import numpy as np
 from PIL import Image
 import torch.utils.data as data
@@ -100,22 +101,13 @@ class CustomDataset(data.Dataset):
         self.root_dir = root_dir
         self.filename_to_class = {}
         self.classname_to_filenames = {}
+        self.classnames = set()
         self.transform = transforms.Compose([
             transforms.Resize((128, 128)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[116.022, 106.491, 95.719],
                                  std=[75.824, 72.377, 74.867]),
         ])
-
-        # Create a dictionary mapping image filename to their class labels
-        # for class_name in os.listdir(os.path.join(self.root_dir, "annotations")):
-        #     if class_name.endswith(".txt"):
-        #         with open(os.path.join(self.root_dir, "annotations", class_name), "r") as f:
-        #             images = f.readlines()
-        #             images = [int(x.strip()) for x in images]
-        #         for image in images:
-        #             image_filename = "im{}.jpg".format(image)
-        #             self.filename_to_class[image_filename] = class_name.split(".")[0]
 
         # Create a dictionary mapping classnames to the list of image filenames
         for filename in os.listdir(os.path.join(self.root_dir, "annotations")):
@@ -125,20 +117,7 @@ class CustomDataset(data.Dataset):
                           image_numbers = f.readlines()
                           image_filenames = ["im{}.jpg".format(n.strip()) for n in image_numbers]
                           self.classname_to_filenames[class_name] = image_filenames
-
-        # Create a dictionary mapping image filename to their class labels
-
-        # Explored this approach but realized there are some unlabeled
-        # images in the dataset so its easier to pick images from the
-        # annotation files.
-        
-        # for image_file in os.listdir(os.path.join(self.root_dir, "images")):
-        #     labels = []
-        #     for key in self.classname_to_filenames.keys():
-        #         if image_file in self.classname_to_filenames[key]:
-        #             labels.append(key)
-        #     print(f'{(image_file, labels)}')
-        #     self.filename_to_class[image_file] = labels
+                          self.classnames.add(class_name)
 
         # Create a dictionary with multi labels
         for class_name in os.listdir(os.path.join(self.root_dir, "annotations")):
@@ -147,27 +126,14 @@ class CustomDataset(data.Dataset):
                     images = f.readlines()
                     images = [int(x.strip()) for x in images]
                 for image in images:
-                    labels = []
+                    labels = np.zeros(len(self.classnames))
                     image_filename = "im{}.jpg".format(image)
                     # check if image is in a class and store the label of that class
-                    for key in self.classname_to_filenames:
-                        if image_filename in self.classname_to_filenames[key]:
-                            labels.append(key)
-                    self.filename_to_class[image_filename] = labels #class_name.split(".")[0]
+                    for i, class_name in enumerate(self.classnames):
+                        if image_filename in self.classname_to_filenames[class_name]:
+                            labels[i] = 1
+                    self.filename_to_class[image_filename] = labels
         print(f'show a sample labels {self.filename_to_class[list(self.filename_to_class.keys())[0]]}')
-
-        # Check that all images have the same size
-        # Result: All images have same size
-        # image_sizes = set()
-        # for filename in self.filename_to_class:
-        #     image_path = os.path.join(self.root_dir, "images", filename)
-        #     with Image.open(image_path) as img:
-        #         sys.stdout.write('.')
-        #         sys.stdout.flush()
-        #         image_sizes.add(img.size)
-        #         if len(image_sizes) > 1:
-        #             print(image_sizes)
-        #             raise ValueError("Images have different sizes")
 
     def __len__(self):
         """The size of the dataset"""
@@ -192,27 +158,18 @@ class CustomDataset(data.Dataset):
         # Create a dictionary containing the image and the label
         return {'images': image, 'labels': label}
 
+    # def classnames(self):
+    #     """
+    #     Return the classnames
+    #     """
+    #     return list(self.classname_to_filenames.keys())
+
 def epoch_time(start_time, end_time):
     """Calcuate the time a training epoch took to train"""
     elapsed_time = end_time - start_time
     elapsped_mins = int(elapsed_time / 60)
     elapsed_secs = int(elapsed_time = elapsed_mins ( 60))
     return elapsed_mins, elapsed_secs
-
-def train_model(loader):
-    """
-    Train a multi-label model
-    """
-    # Initialize model
-
-    # Define loss function and optimizer
-    criterion = nn.BCEWithLogitsLoss()
-    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
-
-    # Train model
-    model.train()
-    for i, batch in enumerate(loader):
-        pass
 
 def collate_fn(batch):
     """Customize the batching process of the dataloader in the multi-label
@@ -236,31 +193,109 @@ def collate_fn(batch):
         padded_image = torch.nn.functional.pad(image['images'], pad=(0, 0, max_size - image['images'].shape[-1], 0), mode='constant', value=0)
         padded_images.append(padded_image)
         labels.append(image['labels'])
+    images = torch.stack(padded_images)
+    labels = torch.tensor(np.array([item for item in labels]))
+    return {'images': images, 'labels': labels}
+    #    return {'images': torch.stack(padded_images), 'labels': labels}
 
-    # Return batch
-    return {'images': torch.stack(padded_images), 'labels': labels}
+def accuracy(outputs, labels, threshold=0.5):
+    """Calculate accuracy"""
+    predicted = outputs > threshold
+    correct = (predicted == labels).sum().item()
+    total = labels.numel()
+    acc = correct / total
+    return acc
+
+def train_and_val_model(train_loader, val_loader, class_names):
+    """
+    Train a multi-label model
+    """
+    lr_rate = 1e-2
+    num_epochs = 10
+
+    # Initialize model
+    model = models.resnet50(pretrained=True)
+
+    # Freeze all layers except the final fully connected layer
+    for param in model.parameters():
+        param.requires_grad = False
+
+    # Replace the final fully connected layer
+    num_classes = len(class_names)
+    model.fc = torch.nn.Sequential(
+        torch.nn.Linear(in_features=2048, out_features=1024),
+        torch.nn.ReLU(),
+        torch.nn.Dropout(p=0.2),
+        torch.nn.Linear(in_features=1024, out_features=num_classes),
+        torch.nn.Sigmoid())
+
+    # Define loss function and optimizer
+    criterion = torch.nn.BCEWithLogitsLoss() #torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr_rate)
+
+    # Train model
+    model.to(device)
+    for epoch in range(num_epochs):
+        train_loss = 0
+        val_loss = 0
+        train_acc = 0
+        val_acc = 0
+        model.train()
+        for i, batch in enumerate(train_loader):
+            images = batch['images'].to(device)
+            labels = batch['labels'].to(device)
+
+            outputs = model(images)
+
+            # calculate loss
+            loss = criterion(outputs, labels)
+
+            optimizer.zero_grad()
+            loss.backward()
+
+            # update model parameters
+            optimizer.step()
+
+            # Calculate accuracy
+            acc = accuracy(outputs, labels)
+            train_acc += acc
+            train_loss += loss.item()
+
+        # Validation
+        model.eval()
+        with torch.no_grad():
+            for batch_idx, batch in enumerate(val_loader):
+                images = batch['images'].to(device)
+                labels = batch['labels'].to(device)
+                outputs = model(images)
+                acc = accuracy(outputs, labels)
+                loss = criterion(outputs, labels)
+                val_acc += acc
+                val_loss += loss.item()
+
+        # Display results
+        print('Epoch [{}/{}], Train Loss: {:.4f}, Val Loss: {:.4f}, Train_acc: {:.4f}, Val acc: {:.4f}'
+              .format(epoch+1, num_epochs,
+                      train_loss/len(train_loader), val_loss/len(val_loader),
+                      train_acc/len(train_loader), val_acc/len(val_loader))
+    return
 
 if __name__ == '__main__':
-    # res = data_mean_std('../images')
-    # print(f'rgb mean {res[0]}, rgd_std {res[1]}')
-    # print(f'gray mean {res[2]}, gray std {res[3]}')
-    # print(f'Color images {res[4]}, gray images {res[5]}')
-
-    # check_multilabels('./')
-    # check_duplicate_images('.')
-
+    """Train and validate model"""
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f'Device: {device}')
     validation_split = 0.2
 
     # Create a dataset object
     dataset = CustomDataset('./')
-    print(f'Length of dataset {len(dataset)}')
 
-    # Split the data into train and test sets
+    # Split the data into train and validation sets
     dataset_size = len(dataset)
+    classnames = dataset.classnames
     indices = list(range(dataset_size))
     split = int(np.floor(validation_split * dataset_size))
 
-    # way or may not want to shuffle due to class imbalance
+    # May not want to shuffle due to class imbalance
     # np.random.shuffle(indices)
     train_indices, validation_indices = indices[split:], indices[:split]
 
@@ -271,7 +306,6 @@ if __name__ == '__main__':
 
     # Create the dataloaders
     trainloader = torch.utils.data.DataLoader(dataset, batch_size=32, sampler=train_sampler, collate_fn=collate_fn)
-    testloader = torch.utils.data.DataLoader(dataset, batch_size=2, sampler=validation_sampler, collate_fn=collate_fn)
+    validationloader = torch.utils.data.DataLoader(dataset, batch_size=2, sampler=validation_sampler, collate_fn=collate_fn)
 
-    for i, batch in enumerate(trainloader):
-        pass
+    train_and_val_model(trainloader, validationloader, classnames)
