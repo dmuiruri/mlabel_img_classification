@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -n 2
-#SBATCH -p gputest
-#SBATCH -t 00:10:00
-#SBATCH --mem=3000
+#SBATCH -p gpu
+#SBATCH -t 00:30:00
+#SBATCH --mem=5000
 #SBATCH --gres=gpu:v100:1
 #SBATCH -J cv_mlabel
 #SBATCH -o cv.out.%j
