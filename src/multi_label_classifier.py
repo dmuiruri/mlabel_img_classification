@@ -158,12 +158,6 @@ class CustomDataset(data.Dataset):
         # Create a dictionary containing the image and the label
         return {'images': image, 'labels': label}
 
-    # def classnames(self):
-    #     """
-    #     Return the classnames
-    #     """
-    #     return list(self.classname_to_filenames.keys())
-
 def epoch_time(start_time, end_time):
     """Calcuate the time a training epoch took to train"""
     elapsed_time = end_time - start_time
@@ -210,27 +204,34 @@ def train_and_val_model(train_loader, val_loader, class_names):
     """
     Train a multi-label model
     """
-    lr_rate = 1e-2
+    lr_rate = 1e-6
     num_epochs = 10
 
     # Initialize model
-    model = models.resnet50(pretrained=True)
+    #model = models.resnet50(pretrained=True) # Resnet50
+    model = models.vgg16(pretrained=True)
 
     # Freeze all layers except the final fully connected layer
     for param in model.parameters():
         param.requires_grad = False
 
     # Replace the final fully connected layer
+    # ResNet50
+    # num_classes = len(class_names)
+    # model.fc = torch.nn.Sequential(
+    #     torch.nn.Linear(in_features=2048, out_features=1024),
+    #     torch.nn.ReLU(),
+    #     torch.nn.Dropout(p=0.2),
+    #     torch.nn.Linear(in_features=1024, out_features=num_classes),
+    #     torch.nn.Sigmoid())
+
+    # VGG16
+    num_features = model.classifier[-1].in_features
     num_classes = len(class_names)
-    model.fc = torch.nn.Sequential(
-        torch.nn.Linear(in_features=2048, out_features=1024),
-        torch.nn.ReLU(),
-        torch.nn.Dropout(p=0.2),
-        torch.nn.Linear(in_features=1024, out_features=num_classes),
-        torch.nn.Sigmoid())
+    model.classifier[-1] = torch.nn.Linear(num_features, num_classes)
 
     # Define loss function and optimizer
-    criterion = torch.nn.BCEWithLogitsLoss() #torch.nn.CrossEntropyLoss()
+    criterion = torch.nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr_rate)
 
     # Train model
@@ -277,7 +278,30 @@ def train_and_val_model(train_loader, val_loader, class_names):
         print('Epoch [{}/{}], Train Loss: {:.4f}, Val Loss: {:.4f}, Train_acc: {:.4f}, Val acc: {:.4f}'
               .format(epoch+1, num_epochs,
                       train_loss/len(train_loader), val_loss/len(val_loader),
-                      train_acc/len(train_loader), val_acc/len(val_loader))
+                      train_acc/len(train_loader), val_acc/len(val_loader)))
+    return model
+
+def test_model(test_loader, model):
+    """
+    Test the model with a test datset
+    """
+    model.eval()
+    test_loss = 0
+    test_acc = 0
+    criterion = torch.nn.BCEWithLogitsLoss()
+
+    with torch.no_grad()
+    for batch_idx, batch in enumerate(test_loader):
+        images = batch['images'].to(device)
+        labels = batch['labels'].to(device)
+        ouputs = model(images)
+        loss = criterion(outputs, labels)
+        acc = accuracy(ouputs, labels)
+        test_loss += loss.item()
+        test_acc += acc
+    print('Test Loss: {:.4f}, Test Accuracy: {:.4f}'
+          .format(test_loss/len(test_loader),
+                  test_acc/len(test_loader)))
     return
 
 if __name__ == '__main__':
@@ -288,6 +312,7 @@ if __name__ == '__main__':
 
     # Create a dataset object
     dataset = CustomDataset('./')
+    test_dataset = CustomDataset('./test_images')
 
     # Split the data into train and validation sets
     dataset_size = len(dataset)
@@ -302,10 +327,13 @@ if __name__ == '__main__':
     # Create training and validation samplers
     train_sampler = data.SubsetRandomSampler(train_indices)
     validation_sampler = data.SubsetRandomSampler(validation_indices)
+    test_sampler = data.SubsetRandomSampler(range(len(test_dataset)))
     print(f'Length of train set {len(train_sampler)} and validation set {len(validation_sampler)}')
 
     # Create the dataloaders
     trainloader = torch.utils.data.DataLoader(dataset, batch_size=32, sampler=train_sampler, collate_fn=collate_fn)
-    validationloader = torch.utils.data.DataLoader(dataset, batch_size=2, sampler=validation_sampler, collate_fn=collate_fn)
+    validationloader = torch.utils.data.DataLoader(dataset, batch_size=32, sampler=validation_sampler, collate_fn=collate_fn)
+    testloader = torch.utils.data.DataLoader(test_dataset, batch_size=32, sampler=test_sampler, collate_fn=collate_fn)
 
-    train_and_val_model(trainloader, validationloader, classnames)
+    model = train_and_val_model(trainloader, validationloader, classnames)
+    test_model(testloader, model, criterion)
