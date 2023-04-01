@@ -101,7 +101,7 @@ class CustomDataset(data.Dataset):
         self.filename_to_class = {}
         self.classname_to_filenames = {}
         self.transform = transforms.Compose([
-            transforms.Resize((224, 224)),
+            transforms.Resize((128, 128)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[116.022, 106.491, 95.719],
                                  std=[75.824, 72.377, 74.867]),
@@ -157,16 +157,17 @@ class CustomDataset(data.Dataset):
         print(f'show a sample labels {self.filename_to_class[list(self.filename_to_class.keys())[0]]}')
 
         # Check that all images have the same size
-        # TODO: Check this code
-        image_sizes = set()
-        for filename in self.filename_to_class:
-            image_path = os.path.join(self.root_dir, "images", filename)
-            with Image.open(image_path) as img:
-                image_sizes.add(img.size)
-        if len(image_sizes) > 1:
-            raise ValueError("Images have different sizes")
-
-
+        # Result: All images have same size
+        # image_sizes = set()
+        # for filename in self.filename_to_class:
+        #     image_path = os.path.join(self.root_dir, "images", filename)
+        #     with Image.open(image_path) as img:
+        #         sys.stdout.write('.')
+        #         sys.stdout.flush()
+        #         image_sizes.add(img.size)
+        #         if len(image_sizes) > 1:
+        #             print(image_sizes)
+        #             raise ValueError("Images have different sizes")
 
     def __len__(self):
         """The size of the dataset"""
@@ -213,6 +214,32 @@ def train_model(loader):
     for i, batch in enumerate(loader):
         pass
 
+def collate_fn(batch):
+    """Customize the batching process of the dataloader in the multi-label
+    setting.
+
+    The collate function is an important component of the PyTorch
+    DataLoader, as it allows you to customize how batches are formed
+    from individual samples. In the case of multi-label
+    classification, where the samples may have different numbers of
+    labels, the default collate function may not work, which is why a
+    custom collate function is needed to handle this case properly.
+
+    """
+    # Get maximum image size
+    max_size = max([image['images'].shape[-1] for image in batch])
+
+    # Pad images to the same size
+    padded_images = []
+    labels = []
+    for image in batch:
+        padded_image = torch.nn.functional.pad(image['images'], pad=(0, 0, max_size - image['images'].shape[-1], 0), mode='constant', value=0)
+        padded_images.append(padded_image)
+        labels.append(image['labels'])
+
+    # Return batch
+    return {'images': torch.stack(padded_images), 'labels': labels}
+
 if __name__ == '__main__':
     # res = data_mean_std('../images')
     # print(f'rgb mean {res[0]}, rgd_std {res[1]}')
@@ -237,17 +264,14 @@ if __name__ == '__main__':
     # np.random.shuffle(indices)
     train_indices, validation_indices = indices[split:], indices[:split]
 
+    # Create training and validation samplers
     train_sampler = data.SubsetRandomSampler(train_indices)
     validation_sampler = data.SubsetRandomSampler(validation_indices)
     print(f'Length of train set {len(train_sampler)} and validation set {len(validation_sampler)}')
+
     # Create the dataloaders
-    trainloader = torch.utils.data.DataLoader(dataset, batch_size=2, sampler=train_sampler)
-    testloader = torch.utils.data.DataLoader(dataset, batch_size=2, sampler=validation_sampler)
+    trainloader = torch.utils.data.DataLoader(dataset, batch_size=32, sampler=train_sampler, collate_fn=collate_fn)
+    testloader = torch.utils.data.DataLoader(dataset, batch_size=2, sampler=validation_sampler, collate_fn=collate_fn)
 
     for i, batch in enumerate(trainloader):
-        print(f'Batch number {i}: {batch.keys()}')
-        print(f'batch labels {batch["labels"]}')
-        print(f'{batch}')
-        if i == 3:
-            break
-
+        pass
