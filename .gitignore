@@ -3,8 +3,8 @@
 # Project data
 
 annotations/
-dl2021-image-corpus-proj.zip
-images/
+*.zip
+images*/
 
 # Skip txt files for now
 *.txt
