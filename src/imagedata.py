@@ -133,6 +133,16 @@ def test_collate_fn(batch):
 #     return {'images': images}
 
 if __name__ == '__main__':
-        # Create a dataset object
+    # Create a dataset object
     dataset = CustomDataset('./')
     test_dataset = TestDataset('./test_images')
+
+    # Create a test for the CustomDataset class
+    print(f'Number of images: {len(dataset)}')
+    print(f'Number of classes: {len(dataset.classnames)}')
+    print(f'Class names: {dataset.classnames}')
+    print(f'Image filenames: {list(dataset.filename_to_class.keys())[:5]}')
+    print(f'Image labels: {list(dataset.filename_to_class.values())[:5]}')
+    
+
+    
