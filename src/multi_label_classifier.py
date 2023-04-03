@@ -52,8 +52,7 @@ def train_and_val_model(train_loader, val_loader, class_names):
         torch.nn.Linear(in_features=2048, out_features=1024),
         torch.nn.ReLU(),
         torch.nn.Dropout(p=0.3),
-        torch.nn.Linear(in_features=1024, out_features=num_classes),
-        torch.nn.Sigmoid())
+        torch.nn.Linear(in_features=1024, out_features=num_classes))
 
     # VGG16
     # num_features = model.classifier[-1].in_features
