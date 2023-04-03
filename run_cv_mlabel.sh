@@ -14,4 +14,5 @@ module purge
 module load python-data/3.9-22.04
 module load pytorch
 
+#python src/data_exploration.py
 python src/multi_label_classifier.py
