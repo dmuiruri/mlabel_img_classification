@@ -50,6 +50,10 @@ def train_and_val_model(train_loader, val_loader, class_names):
     for param in model.parameters():
         param.requires_grad = False
 
+    # Unfreeze some layers
+    for name, param in model.named_parameters():
+        if "layer4" in name or "layer3" in name:
+            param.requires_grad = True
     # Replace the final fully connected layer
     # ResNet50
     num_classes = len(class_names)
