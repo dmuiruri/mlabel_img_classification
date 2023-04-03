@@ -7,94 +7,9 @@ import numpy as np
 from PIL import Image
 import torch.utils.data as data
 from itertools import combinations
+import json
 
 print(f'PyTorch version {torch.__version__}')
-
-def data_mean_std(image_dir):
-    """A helper function to determine the mean and std of the dataset
-
-    """
-    image_dir = os.path.realpath(image_dir)
-
-    # Empty arrays to store pixel values
-    r_channel = []
-    g_channel = []
-    b_channel = []
-    gray_img = []
-    color_images = 0
-    gray_images = 0
-    print(f'>> Generating mean and std of the data at {image_dir}')
-    # Loop over all images in the dir
-    for filename in os.listdir(image_dir):
-        # sys.stdout.write('.')
-        # sys.stdout.flush()
-        # Load the image and convert it to numpy array
-        img = np.array(Image.open(os.path.join(image_dir, filename)))
-
-        # Append pixel values to respective channel array
-        if len(img.shape) == 3:
-            color_images += 1
-            r_channel.append(img[:,:,0])
-            g_channel.append(img[:,:,1])
-            b_channel.append(img[:,:,2])
-        else:
-            # Determine proportion of non RGB images
-            gray_images += 1
-            gray_img.append(img)
-    # Calculate mean and standard deviation for each channel
-    rgb_mean = [np.mean(r_channel), np.mean(g_channel), np.mean(b_channel)]
-    rgb_std = [np.std(r_channel), np.std(g_channel), np.std(b_channel)]
-    gray_mean = np.mean(gray_img)
-    gray_std = np.std(gray_img)
-    print(f'Color images: {color_images}, gray scale images {gray_images}')
-    return rgb_mean, rgb_std, gray_mean, gray_std, color_images, gray_images
-
-def check_multilabels(root_dir):
-    """
-    Helper function to test for the presence of multilabels
-    """
-    item_classes = {}
-    num_of_classes = len(os.listdir(os.path.join(root_dir, "annotations")))
-    print(f'Number of classes: {num_of_classes}')
-    for class_name in os.listdir(os.path.join(root_dir, "annotations")):
-        if class_name.endswith('.txt'):
-            label = class_name.split('.')[0]
-            with open(os.path.join(root_dir, "annotations", class_name)) as f:
-                      images = [int(line.strip()) for line in f.readlines()]
-                      item_classes[label]=images
-    labels = list(item_classes.keys())
-    pairs = combinations(labels, 2)
-    for pair in pairs:
-        # images with multi-labels in these classes
-        num_multi_label = len(set(item_classes[pair[0]]) &
-                              set(item_classes[pair[1]]))
-        print(f'{num_multi_label} images have labels '
-              f'{pair[0]} and {pair[1]}')
-    return
-
-def check_duplicate_images(root_dir):
-    """
-    Check for duplicates of images
-    """
-    image_files = os.listdir(os.path.join(root_dir, "images"))
-    num_of_images = len(image_files)
-    num_image_non_duplicates = len(set(image_files))
-    if num_of_images == num_image_non_duplicates:
-        print(f"No duplicates {num_of_images} / {num_image_non_duplicates}")
-    else:
-        print(f'{num_of_images - num_image_non_duplicates} {num_of_images} / {num_image_non_duplicates}')
-
-def transform_data():
-    """
-    Perform transformations of the data
-    """
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[116.022, 106.491, 95.719],
-                             std=[75.824, 72.377, 74.867]),
-    ])
-    return transform
 
 class CustomDataset(data.Dataset):
     def __init__(self, root_dir):
@@ -103,11 +18,12 @@ class CustomDataset(data.Dataset):
         self.classname_to_filenames = {}
         self.classnames = set()
         self.transform = transforms.Compose([
-            transforms.Resize((128, 128)),
+            transforms.Resize((299, 299)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[116.022, 106.491, 95.719],
-                                 std=[75.824, 72.377, 74.867]),
-        ])
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            # transforms.Normalize(mean=[116.022, 106.491, 95.719],
+            #                      std=[75.824, 72.377, 74.867]),
+        ])# resnet and vgg size 128, 128 inception size 299,299
 
         # Create a dictionary mapping classnames to the list of image filenames
         for filename in os.listdir(os.path.join(self.root_dir, "annotations")):
@@ -120,19 +36,18 @@ class CustomDataset(data.Dataset):
                           self.classnames.add(class_name)
 
         # Create a dictionary with multi labels
-        for class_name in os.listdir(os.path.join(self.root_dir, "annotations")):
-            if class_name.endswith(".txt"):
-                with open(os.path.join(self.root_dir, "annotations", class_name), "r") as f:
-                    images = f.readlines()
-                    images = [int(x.strip()) for x in images]
-                for image in images:
-                    labels = np.zeros(len(self.classnames))
-                    image_filename = "im{}.jpg".format(image)
-                    # check if image is in a class and store the label of that class
-                    for i, class_name in enumerate(self.classnames):
-                        if image_filename in self.classname_to_filenames[class_name]:
-                            labels[i] = 1
-                    self.filename_to_class[image_filename] = labels
+        for class_name in self.classnames: #os.listdir(os.path.join(self.root_dir, "annotations")):
+            with open(os.path.join(self.root_dir, "annotations", class_name + '.txt'), "r") as f:
+                images = f.readlines()
+                images = [int(x.strip()) for x in images]
+            for image in images:
+                labels = np.zeros(len(self.classnames))
+                image_filename = "im{}.jpg".format(image)
+                # check if image is in a class and store the label of that class
+                for i, class_name in enumerate(self.classnames):
+                    if image_filename in self.classname_to_filenames[class_name]:
+                        labels[i] = 1
+                self.filename_to_class[image_filename] = labels
         print(f'show a sample labels {self.filename_to_class[list(self.filename_to_class.keys())[0]]}')
 
     def __len__(self):
@@ -152,11 +67,37 @@ class CustomDataset(data.Dataset):
         label = self.filename_to_class[filename]
 
         # Apply transformations
-        image = transforms.Resize((224, 224))(image)
         image = self.transform(image)
 
         # Create a dictionary containing the image and the label
         return {'images': image, 'labels': label}
+
+class TestDataset(data.Dataset):
+    """
+    Create a dataset for testing where we dont have the ground truth
+    """
+    def __init__(self, root_dir):
+        self.root_dir = root_dir
+        self.transform = transforms.Compose([
+            transforms.Resize((299, 299)), # 128, 128
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+            # transforms.Normalize(mean=[116.022, 106.491, 95.719],
+            #                      std=[75.824, 72.377, 74.867]),])
+
+        self.images = os.listdir(os.path.join(root_dir, "images"))
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, index):
+        # Load image
+        filename = self.images[index]
+        image_path = os.path.join(self.root_dir, "images", filename)
+        image = Image.open(image_path).convert("RGB")
+        if self.transform:
+            image = self.transform(image)
+        return {'images':image, 'filenames':filename}
 
 def epoch_time(start_time, end_time):
     """Calcuate the time a training epoch took to train"""
@@ -190,7 +131,16 @@ def collate_fn(batch):
     images = torch.stack(padded_images)
     labels = torch.tensor(np.array([item for item in labels]))
     return {'images': images, 'labels': labels}
-    #    return {'images': torch.stack(padded_images), 'labels': labels}
+
+def test_collate_fn(batch):
+    images = torch.stack([sample['images'] for sample in batch])
+    ids = [item['filenames'] for item in batch]
+    return {'images': images, 'filenames': ids }
+
+# def test_collate_fn(batch):
+#     images = torch.stack([sample['images'] for sample in batch])
+#     return {'images': images}
+
 
 def accuracy(outputs, labels, threshold=0.5):
     """Calculate accuracy"""
@@ -202,14 +152,15 @@ def accuracy(outputs, labels, threshold=0.5):
 
 def train_and_val_model(train_loader, val_loader, class_names):
     """
-    Train a multi-label model
+    Train a multi-label model 
     """
-    lr_rate = 1e-6
-    num_epochs = 10
+    lr_rate = 1e-7
+    num_epochs = 30
 
     # Initialize model
     #model = models.resnet50(pretrained=True) # Resnet50
-    model = models.vgg16(pretrained=True)
+    #model = models.vgg16(pretrained=True) # VGG16
+    model = models.inception_v3(pretrained=True)
 
     # Freeze all layers except the final fully connected layer
     for param in model.parameters():
@@ -221,14 +172,24 @@ def train_and_val_model(train_loader, val_loader, class_names):
     # model.fc = torch.nn.Sequential(
     #     torch.nn.Linear(in_features=2048, out_features=1024),
     #     torch.nn.ReLU(),
-    #     torch.nn.Dropout(p=0.2),
+    #     torch.nn.Dropout(p=0.3),
     #     torch.nn.Linear(in_features=1024, out_features=num_classes),
     #     torch.nn.Sigmoid())
 
     # VGG16
-    num_features = model.classifier[-1].in_features
+    # num_features = model.classifier[-1].in_features
+    # num_classes = len(class_names)
+    # model.classifier[-1] = torch.nn.Linear(num_features, num_classes)
+
+    # Inception_v3
     num_classes = len(class_names)
-    model.classifier[-1] = torch.nn.Linear(num_features, num_classes)
+    num_features = model.fc.in_features
+    model.fc = torch.nn.Sequential(
+        torch.nn.Linear(num_features, 1024),
+        torch.nn.ReLU(),
+        torch.nn.Dropout(p=0.4),
+        torch.nn.Linear(1024, num_classes),
+        torch.nn.Sigmoid())
 
     # Define loss function and optimizer
     criterion = torch.nn.BCEWithLogitsLoss()
@@ -247,7 +208,7 @@ def train_and_val_model(train_loader, val_loader, class_names):
             labels = batch['labels'].to(device)
 
             outputs = model(images)
-
+            outputs =  outputs.logits # inception specific
             # calculate loss
             loss = criterion(outputs, labels)
 
@@ -281,28 +242,43 @@ def train_and_val_model(train_loader, val_loader, class_names):
                       train_acc/len(train_loader), val_acc/len(val_loader)))
     return model
 
+# def test_model(test_loader, model):
+#     """
+#     Test the model with a test datset and return the predictions
+#     """
+#     model.eval()
+#     predictions = []
+#     with torch.no_grad():
+#         for batch_idx, batch in enumerate(test_loader):
+#             images = batch['images'].to(device)
+#             outputs = model(images)
+#             predicted_labels = torch.round(torch.sigmoid(outputs))
+#             print(predicted_labels)
+#             predictions.extend(predicted_labels.cpu().numpy())
+
+#     return predictions
+
 def test_model(test_loader, model):
     """
     Test the model with a test datset
     """
     model.eval()
-    test_loss = 0
-    test_acc = 0
     criterion = torch.nn.BCEWithLogitsLoss()
-
-    with torch.no_grad()
-    for batch_idx, batch in enumerate(test_loader):
-        images = batch['images'].to(device)
-        labels = batch['labels'].to(device)
-        ouputs = model(images)
-        loss = criterion(outputs, labels)
-        acc = accuracy(ouputs, labels)
-        test_loss += loss.item()
-        test_acc += acc
-    print('Test Loss: {:.4f}, Test Accuracy: {:.4f}'
-          .format(test_loss/len(test_loader),
-                  test_acc/len(test_loader)))
-    return
+    predictions = {}
+    threshold = 0.4
+    with torch.no_grad():
+        for batch_idx, batch in enumerate(test_loader):
+            images = batch['images'].to(device)
+            filenames = batch['filenames']
+            outputs = model(images)
+            # predicted_labels = torch.round(torch.sigmoid(outputs))
+            predicted_labels = torch.sigmoid(outputs)
+            # Apply thresholding to convert probabilities to binary predictions
+            batch_predictions = (predicted_labels >= threshold).int()
+            predicted_labels = batch_predictions.detach().cpu().numpy()
+            for i in range(len(filenames)):
+                predictions[filenames[i]] = predicted_labels[i].tolist()
+    return predictions
 
 if __name__ == '__main__':
     """Train and validate model"""
@@ -312,7 +288,7 @@ if __name__ == '__main__':
 
     # Create a dataset object
     dataset = CustomDataset('./')
-    test_dataset = CustomDataset('./test_images')
+    test_dataset = TestDataset('./test_images')
 
     # Split the data into train and validation sets
     dataset_size = len(dataset)
@@ -321,7 +297,7 @@ if __name__ == '__main__':
     split = int(np.floor(validation_split * dataset_size))
 
     # May not want to shuffle due to class imbalance
-    # np.random.shuffle(indices)
+    np.random.shuffle(indices)
     train_indices, validation_indices = indices[split:], indices[:split]
 
     # Create training and validation samplers
@@ -331,9 +307,14 @@ if __name__ == '__main__':
     print(f'Length of train set {len(train_sampler)} and validation set {len(validation_sampler)}')
 
     # Create the dataloaders
-    trainloader = torch.utils.data.DataLoader(dataset, batch_size=32, sampler=train_sampler, collate_fn=collate_fn)
-    validationloader = torch.utils.data.DataLoader(dataset, batch_size=32, sampler=validation_sampler, collate_fn=collate_fn)
-    testloader = torch.utils.data.DataLoader(test_dataset, batch_size=32, sampler=test_sampler, collate_fn=collate_fn)
+    trainloader = torch.utils.data.DataLoader(dataset, batch_size=16, sampler=train_sampler, collate_fn=collate_fn)
+    validationloader = torch.utils.data.DataLoader(dataset, batch_size=16, sampler=validation_sampler, collate_fn=collate_fn)
+    testloader = torch.utils.data.DataLoader(test_dataset, batch_size=16, sampler=test_sampler, collate_fn=test_collate_fn)
 
     model = train_and_val_model(trainloader, validationloader, classnames)
-    test_model(testloader, model, criterion)
+    predictions = test_model(testloader, model)
+    #json_obj = json.dumps({"predictions": [pred.tolist() for pred in predictions]}) # when predictions is array
+    json_obj = json.dumps(predictions)
+    #with open('predictions_resnet50.json', 'w') as f:
+    with open('predictions_inception_v3.json', 'w') as f:
+        f.write(json_obj)
