@@ -71,8 +71,7 @@ def train_and_val_model(train_loader, val_loader, class_names):
     #     torch.nn.Linear(num_features, 1024),
     #     torch.nn.ReLU(),
     #     torch.nn.Dropout(p=0.4),
-    #     torch.nn.Linear(1024, num_classes),
-    #     torch.nn.Sigmoid())
+    #     torch.nn.Linear(1024, num_classes))
 
     # Define loss function and optimizer
     criterion = torch.nn.BCEWithLogitsLoss()
@@ -91,7 +90,7 @@ def train_and_val_model(train_loader, val_loader, class_names):
             labels = batch['labels'].to(device)
 
             outputs = model(images)
-            outputs =  outputs.logits # inception specific
+            # outputs =  outputs.logits # ToDo: inception specific line
             # calculate loss
             loss = criterion(outputs, labels)
 
