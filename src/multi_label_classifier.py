@@ -33,13 +33,18 @@ def train_and_val_model(train_loader, val_loader, class_names):
     """
     Train a multi-label model 
     """
-    lr_rate = 1e-7
-    num_epochs = 30
+    lr_rate = 1e-4
+    num_epochs = 10
 
     # Initialize model
-    #model = models.resnet50(pretrained=True) # Resnet50
+    model = models.resnet50(pretrained=True) # Resnet50
     #model = models.vgg16(pretrained=True) # VGG16
-    model = models.inception_v3(pretrained=True)
+    #model = models.inception_v3(pretrained=True)
+
+    # Test effect of unfreezing more layers (3 and 4)
+    # for name, param in model.named_parameters():
+    #     if "layer4" in name or "layer3" in name:
+    #         param.requires_grad = True
 
     # Freeze all layers except the final fully connected layer
     for param in model.parameters():
@@ -120,22 +125,6 @@ def train_and_val_model(train_loader, val_loader, class_names):
                       train_acc/len(train_loader), val_acc/len(val_loader)))
     return model
 
-# def test_model(test_loader, model):
-#     """
-#     Test the model with a test datset and return the predictions
-#     """
-#     model.eval()
-#     predictions = []
-#     with torch.no_grad():
-#         for batch_idx, batch in enumerate(test_loader):
-#             images = batch['images'].to(device)
-#             outputs = model(images)
-#             predicted_labels = torch.round(torch.sigmoid(outputs))
-#             print(predicted_labels)
-#             predictions.extend(predicted_labels.cpu().numpy())
-
-#     return predictions
-
 def test_model(test_loader, model):
     """
     Test the model with a test datset
@@ -191,8 +180,6 @@ if __name__ == '__main__':
 
     model = train_and_val_model(trainloader, validationloader, classnames)
     predictions = test_model(testloader, model)
-    #json_obj = json.dumps({"predictions": [pred.tolist() for pred in predictions]}) # when predictions is array
     json_obj = json.dumps(predictions)
-    #with open('predictions_resnet50.json', 'w') as f:
-    with open('predictions_inception_v3.json', 'w') as f:
+    with open('predictions_resnet50.json', 'w') as f:
         f.write(json_obj)

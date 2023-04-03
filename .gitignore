@@ -15,3 +15,9 @@ images*/
 # Ignore batch slurm files
 cv.err.*
 cv.out.*
+
+# Python cache files
+__pycache__/
+
+# json report files for now
+*.json
