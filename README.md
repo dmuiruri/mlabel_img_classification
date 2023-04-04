@@ -10,13 +10,36 @@ requirements.txt can be found in the repo.
 
 ## Data
 
-The dataset used contains 20000 images and their annotations. The
-images and annotations are stored in *images* and *annotations* folder
-respectively. Annotations are contained in text files named by
-*classname.txt*. The annotations folder contains 14 files which
-implies that an image can have upto 14 labels.
+The dataset used contains 20000 images and their annotations which are
+stored in *images* and *annotations* folder respectively. Annotations
+are contained in text files named by *<classname>.txt*. The annotations
+folder contains 14 files which implies that an image can have upto 14
+labels.
 
-Add sample of dir structures
+An example of image files in the image directory
+```
+ls images | head
+im10000.jpg
+im10001.jpg
+im10002.jpg
+...
+```
+
+An example of annotation files
+```
+baby.txt
+bird.txt
+car.txt
+...
+```
+An example of contents in an annotation file
+```
+$cat annotations/car.txt | head
+18077
+13634
+16466
+...
+```
 
 ### Data processing
 
