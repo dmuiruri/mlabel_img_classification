@@ -8,7 +8,6 @@ from PIL import Image
 import torch.utils.data as data
 from itertools import combinations
 import json
-
 import imagedata
 
 print(f'PyTorch version {torch.__version__}')
@@ -36,7 +35,7 @@ def train_and_val_model(train_loader, val_loader, class_names):
     lr_rate = 1e-4
     num_epochs = 10
 
-    # Initialize model
+    # Initialize models
     model = models.resnet50(pretrained=True) # Resnet50
     #model = models.vgg16(pretrained=True) # VGG16
     #model = models.inception_v3(pretrained=True)
