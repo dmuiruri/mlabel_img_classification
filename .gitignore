@@ -21,3 +21,6 @@ __pycache__/
 
 # json report files for now
 *.json
+
+# slurm job script
+*.sh

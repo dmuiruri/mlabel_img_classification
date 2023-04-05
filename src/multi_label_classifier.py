@@ -105,8 +105,10 @@ def train_and_val_model(model, train_loader, val_loader):
         val_loss = 0
         train_acc = 0
         val_acc = 0
-        model.train()
-        for i, batch in enumerate(train_loader):
+        for batch_idx, batch in enumerate(train_loader):
+            if batch_idx == 2:
+                break
+            print(f'Training batch {batch_idx}')
             images = batch['images'].to(device)
             labels = batch['labels'].to(device)
 
@@ -131,6 +133,9 @@ def train_and_val_model(model, train_loader, val_loader):
         model.eval()
         with torch.no_grad():
             for batch_idx, batch in enumerate(val_loader):
+                if batch_idx == 2:
+                    break
+                print(f'Evaluating batch {batch_idx}')
                 images = batch['images'].to(device)
                 labels = batch['labels'].to(device)
                 outputs = model(images)
@@ -138,12 +143,14 @@ def train_and_val_model(model, train_loader, val_loader):
                 loss = criterion(outputs, labels)
                 val_acc += acc
                 val_loss += loss.item()
-
+        model.train()
         # Display results
+        print('>> Done training')
         print('Epoch [{}/{}], Train Loss: {:.4f}, Val Loss: {:.4f}, Train_acc: {:.4f}, Val acc: {:.4f}'
             .format(epoch+1, num_epochs,
                     train_loss/len(train_loader), val_loss/len(val_loader),
-                    train_acc/len(train_loader), val_acc/len(val_loader)))
+                    train_acc/len(train_loader), val_acc/len(val_loader))) 
+        if epoch == 2: break
     return model
 
 def test_model(test_loader, model):
