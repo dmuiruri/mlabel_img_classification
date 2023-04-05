@@ -70,7 +70,24 @@ the accuracy of the validation set, this is atleast the expected
 behaviour.
 
 ## Results
-
+Results from training process 
 - [ ] Upload results from ResNet50
 - [ ] Upload results from VGG16
 - [ ] Upload results from Inception_v3
+
+## ToDo List
+- [ ] Upload results from all models
+- [x] Model initialization using pretrained weights is generating a warning
+
+- [x] Refactor the code to move the model creation out of the training
+  loop so multiple models can be supported in a much cleaner manner
+
+- [x] Update the mechanism to store predictions(json files) so that each
+  model can store its results without manually changing the names
+
+- [ ] Generate a requirements.txt file for the project
+
+- [ ] Create a single data class that splits the training and
+  validation dataset internally.
+
+- [ ] Implement distrubuted training to speed up the training time
