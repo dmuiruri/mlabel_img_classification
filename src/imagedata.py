@@ -15,13 +15,13 @@ class CustomDataset(data.Dataset):
 
     # Image sizes to be changed depending with model resnet and vgg size 128x128 inception 299x299
     """
-    def __init__(self, root_dir):
+    def __init__(self, root_dir, size=128):
         self.root_dir = root_dir
         self.filename_to_class = {}
         self.classname_to_filenames = {}
         self.classnames = set()
         self.transform = transforms.Compose([
-            transforms.Resize((299, 299)), 
+            transforms.Resize((size, size)), 
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) # mean=[116.022, 106.491, 95.719],std=[75.824, 72.377, 74.867]
         ])
@@ -77,10 +77,10 @@ class TestDataset(data.Dataset):
     """
     Create a dataset for testing where we dont have the ground truth
     """
-    def __init__(self, root_dir):
+    def __init__(self, root_dir, size=128):
         self.root_dir = root_dir
         self.transform = transforms.Compose([
-            transforms.Resize((299, 299)), # 128, 128
+            transforms.Resize((size, size)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]) #mean=[116.022, 106.491, 95.719],std=[75.824, 72.377, 74.867]
         self.images = os.listdir(os.path.join(root_dir, "images"))
@@ -143,6 +143,3 @@ if __name__ == '__main__':
     print(f'Class names: {dataset.classnames}')
     print(f'Image filenames: {list(dataset.filename_to_class.keys())[:5]}')
     print(f'Image labels: {list(dataset.filename_to_class.values())[:5]}')
-    
-
-    

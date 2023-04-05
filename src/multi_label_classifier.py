@@ -3,6 +3,7 @@ import sys
 import torch
 
 import torchvision.models as models
+from torchvision import ResNet50_Weights, VGG16_Weights, Inception_v3_Weights
 import numpy as np
 from PIL import Image
 import torch.utils.data as data
@@ -28,60 +29,71 @@ def accuracy(outputs, labels, threshold=0.5):
     acc = correct / total
     return acc
 
-def train_and_val_model(train_loader, val_loader, class_names):
+class ModelCreator:
+    def __init__(self, num_classes):
+        """Create models from different architectures
+        Define number of categories or classes
+
+        Models: Resnet50, VGG16, Inception_v3
+        """
+        self.num_classes = num_classes
+        self.model_resnet50 = models.resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
+        self.model_resnet50.name = "Resnet50"
+        self.model_vgg16 = models.vgg16(weights=VGG16_Weights.IMAGENET1K_V1)
+        self.model_vgg16.name = "VGG16"
+        self.model_inception_v3 = models.inception_v3(weights=Inception_v3_Weights.IMAGENET1K_V1)
+        self.model_inception_v3.name = "Inception_v3"
+        self.models = {}
+
+    def create_models(self):
+        """Create models from different architectures
+        """
+        for model_arch in [self.model_resnet50, self.model_vgg16, self.model_inception_v3]:
+            # Freeze all layers except the final fully connected layer
+            for param in model_arch.parameters():
+                param.requires_grad = False
+            # Unfreeze some layers
+            for name, param in model_arch.named_parameters():
+                if "layer4" in name or "layer3" in name:
+                    param.requires_grad = True
+            # Replace the final fully connected layer
+            if model_arch.name ==  "Resnet50":
+                model_arch.fc = torch.nn.Sequential(
+                    torch.nn.Linear(in_features=2048, out_features=1024),
+                    torch.nn.ReLU(),
+                    torch.nn.Dropout(p=0.3),
+                    torch.nn.Linear(in_features=1024, out_features=self.num_classes))
+                models['Resnet50'] = model_arch
+            elif model_arch.name ==  "VGG16":
+                num_features = model_arch.classifier[-1].in_features
+                model_arch.classifier[-1] = torch.nn.Linear(num_features, self.num_classes)
+                models['VGG16'] = model_arch
+            elif model_arch.name ==  "Inception_v3":
+                num_features = model.fc.in_features
+                model_arch.fc = torch.nn.Sequential(
+                    torch.nn.Linear(num_features, 1024),
+                    torch.nn.ReLU(),
+                    torch.nn.Dropout(p=0.4),
+                    torch.nn.Linear(1024, self.num_classes))
+                models['Inception_v3'] = model_arch
+
+    def get_models(self):
+        if self.models == None:
+            self.create_models(self)
+        return self.models
+
+def train_and_val_model(model, train_loader, val_loader):
     """
     Train a multi-label model 
     """
-    lr_rate = 1e-4
+    lr_rate = 1e-5
     num_epochs = 10
 
-    # Initialize models
-    model = models.resnet50(pretrained=True) # Resnet50
-    #model = models.vgg16(pretrained=True) # VGG16
-    #model = models.inception_v3(pretrained=True)
-
-    # Test effect of unfreezing more layers (3 and 4)
-    # for name, param in model.named_parameters():
-    #     if "layer4" in name or "layer3" in name:
-    #         param.requires_grad = True
-
-    # Freeze all layers except the final fully connected layer
-    for param in model.parameters():
-        param.requires_grad = False
-
-    # Unfreeze some layers
-    for name, param in model.named_parameters():
-        if "layer4" in name or "layer3" in name:
-            param.requires_grad = True
-    # Replace the final fully connected layer
-    # ResNet50
-    num_classes = len(class_names)
-    model.fc = torch.nn.Sequential(
-        torch.nn.Linear(in_features=2048, out_features=1024),
-        torch.nn.ReLU(),
-        torch.nn.Dropout(p=0.3),
-        torch.nn.Linear(in_features=1024, out_features=num_classes))
-
-    # VGG16
-    # num_features = model.classifier[-1].in_features
-    # num_classes = len(class_names)
-    # model.classifier[-1] = torch.nn.Linear(num_features, num_classes)
-
-    # Inception_v3
-    # num_classes = len(class_names)
-    # num_features = model.fc.in_features
-    # model.fc = torch.nn.Sequential(
-    #     torch.nn.Linear(num_features, 1024),
-    #     torch.nn.ReLU(),
-    #     torch.nn.Dropout(p=0.4),
-    #     torch.nn.Linear(1024, num_classes))
-
-    # Define loss function and optimizer
+    # Define loss function (criterion) and optimizer
     criterion = torch.nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr_rate)
-
-    # Train model
     model.to(device)
+
     for epoch in range(num_epochs):
         train_loss = 0
         val_loss = 0
@@ -93,7 +105,8 @@ def train_and_val_model(train_loader, val_loader, class_names):
             labels = batch['labels'].to(device)
 
             outputs = model(images)
-            # outputs =  outputs.logits # ToDo: inception specific line
+            if model.name == "Inception_v3":
+                outputs =  outputs.logits
             # calculate loss
             loss = criterion(outputs, labels)
 
@@ -122,9 +135,9 @@ def train_and_val_model(train_loader, val_loader, class_names):
 
         # Display results
         print('Epoch [{}/{}], Train Loss: {:.4f}, Val Loss: {:.4f}, Train_acc: {:.4f}, Val acc: {:.4f}'
-              .format(epoch+1, num_epochs,
-                      train_loss/len(train_loader), val_loss/len(val_loader),
-                      train_acc/len(train_loader), val_acc/len(val_loader)))
+            .format(epoch+1, num_epochs,
+                    train_loss/len(train_loader), val_loss/len(val_loader),
+                    train_acc/len(train_loader), val_acc/len(val_loader)))
     return model
 
 def test_model(test_loader, model):
@@ -155,8 +168,8 @@ if __name__ == '__main__':
     print(f'Device: {device}')
     validation_split = 0.2
 
-    # Create a dataset object
-    dataset = imagedata.CustomDataset('./')
+    # Create a dataset object, the size should be different for inception_v3
+    dataset = imagedata.CustomDataset('./', size=299)
     test_dataset = imagedata.TestDataset('./test_images')
 
     # Split the data into train and validation sets
@@ -180,8 +193,13 @@ if __name__ == '__main__':
     validationloader = torch.utils.data.DataLoader(dataset, batch_size=16, sampler=validation_sampler, collate_fn=imagedata.collate_fn)
     testloader = torch.utils.data.DataLoader(test_dataset, batch_size=16, sampler=test_sampler, collate_fn=imagedata.test_collate_fn)
 
-    model = train_and_val_model(trainloader, validationloader, classnames)
-    predictions = test_model(testloader, model)
-    json_obj = json.dumps(predictions)
-    with open('predictions_resnet50.json', 'w') as f:
-        f.write(json_obj)
+    # Create the models, train, validate, test and save the predictions
+    model_creator = ModelCreator(len(classnames))
+    models = model_creator.get_models()
+    for model_arch in models:
+        print(f'Training model: {model_arch}')
+        model = train_and_val_model(models[model_arch], trainloader, validationloader)
+        predictions = test_model(testloader, model)
+        json_obj = json.dumps(predictions)
+        with open(f'predictions_{model_arch}.json', 'w') as f:
+            f.write(json_obj)
