@@ -3,7 +3,7 @@ import sys
 import torch
 
 import torchvision.models as models
-from torchvision import ResNet50_Weights, VGG16_Weights, Inception_v3_Weights
+from torchvision.models import ResNet50_Weights, VGG16_Weights, Inception_V3_Weights
 import numpy as np
 from PIL import Image
 import torch.utils.data as data
@@ -41,7 +41,7 @@ class ModelCreator:
         self.model_resnet50.name = "Resnet50"
         self.model_vgg16 = models.vgg16(weights=VGG16_Weights.IMAGENET1K_V1)
         self.model_vgg16.name = "VGG16"
-        self.model_inception_v3 = models.inception_v3(weights=Inception_v3_Weights.IMAGENET1K_V1)
+        self.model_inception_v3 = models.inception_v3(weights=Inception_V3_Weights.IMAGENET1K_V1)
         self.model_inception_v3.name = "Inception_v3"
         self.models = {}
 
@@ -63,23 +63,29 @@ class ModelCreator:
                     torch.nn.ReLU(),
                     torch.nn.Dropout(p=0.3),
                     torch.nn.Linear(in_features=1024, out_features=self.num_classes))
-                models['Resnet50'] = model_arch
+                self.models['Resnet50'] = model_arch
             elif model_arch.name ==  "VGG16":
                 num_features = model_arch.classifier[-1].in_features
                 model_arch.classifier[-1] = torch.nn.Linear(num_features, self.num_classes)
-                models['VGG16'] = model_arch
+                self.models['VGG16'] = model_arch
             elif model_arch.name ==  "Inception_v3":
-                num_features = model.fc.in_features
+                num_features = model_arch.fc.in_features
                 model_arch.fc = torch.nn.Sequential(
                     torch.nn.Linear(num_features, 1024),
                     torch.nn.ReLU(),
                     torch.nn.Dropout(p=0.4),
                     torch.nn.Linear(1024, self.num_classes))
-                models['Inception_v3'] = model_arch
+                self.models['Inception_v3'] = model_arch
 
     def get_models(self):
-        if self.models == None:
-            self.create_models(self)
+        """
+        Get models created after initialization
+        """
+        if self.models is not None:
+            print('Creating models')
+            self.create_models()
+        else:
+            raise TypeError('Models are None')
         return self.models
 
 def train_and_val_model(model, train_loader, val_loader):
@@ -186,15 +192,15 @@ if __name__ == '__main__':
     train_sampler = data.SubsetRandomSampler(train_indices)
     validation_sampler = data.SubsetRandomSampler(validation_indices)
     test_sampler = data.SubsetRandomSampler(range(len(test_dataset)))
-    print(f'Length of train set {len(train_sampler)} and validation set {len(validation_sampler)}')
-
+    print(f'Length of train set {len(train_sampler)/dataset_size:.1%} and validation set {len(validation_sampler)/dataset_size:.1%}')
     # Create the dataloaders
     trainloader = torch.utils.data.DataLoader(dataset, batch_size=16, sampler=train_sampler, collate_fn=imagedata.collate_fn)
     validationloader = torch.utils.data.DataLoader(dataset, batch_size=16, sampler=validation_sampler, collate_fn=imagedata.collate_fn)
     testloader = torch.utils.data.DataLoader(test_dataset, batch_size=16, sampler=test_sampler, collate_fn=imagedata.test_collate_fn)
-
+    print('Dataloaders created')
     # Create the models, train, validate, test and save the predictions
     model_creator = ModelCreator(len(classnames))
+    print('models created')
     models = model_creator.get_models()
     for model_arch in models:
         print(f'Training model: {model_arch}')
