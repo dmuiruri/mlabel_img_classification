@@ -82,7 +82,6 @@ class ModelCreator:
         Get models created after initialization
         """
         if self.models is not None:
-            print('Creating models')
             self.create_models()
         else:
             raise TypeError('Models are None')
@@ -106,9 +105,6 @@ def train_and_val_model(model, train_loader, val_loader):
         train_acc = 0
         val_acc = 0
         for batch_idx, batch in enumerate(train_loader):
-            if batch_idx == 2:
-                break
-            print(f'Training batch {batch_idx}')
             images = batch['images'].to(device)
             labels = batch['labels'].to(device)
 
@@ -133,9 +129,6 @@ def train_and_val_model(model, train_loader, val_loader):
         model.eval()
         with torch.no_grad():
             for batch_idx, batch in enumerate(val_loader):
-                if batch_idx == 2:
-                    break
-                print(f'Evaluating batch {batch_idx}')
                 images = batch['images'].to(device)
                 labels = batch['labels'].to(device)
                 outputs = model(images)
@@ -145,12 +138,10 @@ def train_and_val_model(model, train_loader, val_loader):
                 val_loss += loss.item()
         model.train()
         # Display results
-        print('>> Done training')
         print('Epoch [{}/{}], Train Loss: {:.4f}, Val Loss: {:.4f}, Train_acc: {:.4f}, Val acc: {:.4f}'
             .format(epoch+1, num_epochs,
                     train_loss/len(train_loader), val_loss/len(val_loader),
                     train_acc/len(train_loader), val_acc/len(val_loader))) 
-        if epoch == 2: break
     return model
 
 def test_model(test_loader, model):
@@ -160,7 +151,7 @@ def test_model(test_loader, model):
     model.eval()
     criterion = torch.nn.BCEWithLogitsLoss()
     predictions = {}
-    threshold = 0.4
+    threshold = 0.5
     with torch.no_grad():
         for batch_idx, batch in enumerate(test_loader):
             images = batch['images'].to(device)
@@ -199,20 +190,19 @@ if __name__ == '__main__':
     train_sampler = data.SubsetRandomSampler(train_indices)
     validation_sampler = data.SubsetRandomSampler(validation_indices)
     test_sampler = data.SubsetRandomSampler(range(len(test_dataset)))
-    print(f'Length of train set {len(train_sampler)/dataset_size:.1%} and validation set {len(validation_sampler)/dataset_size:.1%}')
+    print(f'Length of train set {len(train_sampler)/dataset_size:.1%}'
+          f'and validation set {len(validation_sampler)/dataset_size:.1%}')
     # Create the dataloaders
     trainloader = torch.utils.data.DataLoader(dataset, batch_size=16, sampler=train_sampler, collate_fn=imagedata.collate_fn)
     validationloader = torch.utils.data.DataLoader(dataset, batch_size=16, sampler=validation_sampler, collate_fn=imagedata.collate_fn)
     testloader = torch.utils.data.DataLoader(test_dataset, batch_size=16, sampler=test_sampler, collate_fn=imagedata.test_collate_fn)
-    print('Dataloaders created')
     # Create the models, train, validate, test and save the predictions
     model_creator = ModelCreator(len(classnames))
-    print('models created')
     models = model_creator.get_models()
     for model_arch in models:
         print(f'Training model: {model_arch}')
         model = train_and_val_model(models[model_arch], trainloader, validationloader)
         predictions = test_model(testloader, model)
         json_obj = json.dumps(predictions)
-        with open(f'predictions_{model_arch}.json', 'w') as f:
+        with open(f'predictions/predictions_{models[model_arch].name}.json', 'w') as f:
             f.write(json_obj)
