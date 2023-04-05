@@ -76,14 +76,17 @@ Results from training process
 - [ ] Upload results from Inception_v3
 
 ## ToDo List
-- [ ] Upload results from all models
 - [x] Model initialization using pretrained weights is generating a warning
+  because Pretrained=True # is depricated, need to use suggested
+  approach
 
 - [x] Refactor the code to move the model creation out of the training
   loop so multiple models can be supported in a much cleaner manner
 
 - [x] Update the mechanism to store predictions(json files) so that each
   model can store its results without manually changing the names
+
+- [ ] Upload results from all models
 
 - [ ] Generate a requirements.txt file for the project
 
