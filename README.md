@@ -72,38 +72,47 @@ behaviour.
 ## Results
 Results from training process 
 Training model: Resnet50
-Epoch [1/10], Train Loss: 0.2582, Val Loss: 0.1551, Train_acc: 0.9056, Val acc: 0.9344
-Epoch [2/10], Train Loss: 0.1457, Val Loss: 0.1239, Train_acc: 0.9383, Val acc: 0.9485
-Epoch [3/10], Train Loss: 0.1139, Val Loss: 0.1139, Train_acc: 0.9530, Val acc: 0.9532
-Epoch [4/10], Train Loss: 0.0905, Val Loss: 0.1122, Train_acc: 0.9642, Val acc: 0.9549
-Epoch [5/10], Train Loss: 0.0718, Val Loss: 0.1148, Train_acc: 0.9724, Val acc: 0.9544
-Epoch [6/10], Train Loss: 0.0599, Val Loss: 0.1195, Train_acc: 0.9776, Val acc: 0.9530
-Epoch [7/10], Train Loss: 0.0503, Val Loss: 0.1224, Train_acc: 0.9811, Val acc: 0.9548
-Epoch [8/10], Train Loss: 0.0430, Val Loss: 0.1241, Train_acc: 0.9842, Val acc: 0.9546
-Epoch [9/10], Train Loss: 0.0364, Val Loss: 0.1270, Train_acc: 0.9867, Val acc: 0.9548
-Epoch [10/10], Train Loss: 0.0303, Val Loss: 0.1347, Train_acc: 0.9889, Val acc: 0.9552
+| Epoch | Train Loss | Val Loss | Train acc | Val acc |
+|-------|------------|----------|-----------|---------|
+| 1/10  | 0.2582     | 0.1551   | 0.9056    | 0.9344  |
+| 2/10  | 0.1457     | 0.1239   | 0.9383    | 0.9485  |
+| 3/10  | 0.1139     | 0.1139   | 0.9530    | 0.9532  |
+| 4/10  | 0.0905     | 0.1122   | 0.9642    | 0.9549  |
+| 5/10  | 0.0718     | 0.1148   | 0.9724    | 0.9544  |
+| 6/10  | 0.0599     | 0.1195   | 0.9776    | 0.9530  |
+| 7/10  | 0.0503     | 0.1224   | 0.9811    | 0.9548  |
+| 8/10  | 0.0430     | 0.1241   | 0.9842    | 0.9546  |
+| 9/10  | 0.0364     | 0.1270   | 0.9867    | 0.9548  |
+| 10/10 | 0.0303     | 0.1347   | 0.9889    | 0.9552  |
+
 Training model: VGG16
-Epoch [1/10], Train Loss: 0.4531, Val Loss: 0.3498, Train_acc: 0.8766, Val acc: 0.8889
-Epoch [2/10], Train Loss: 0.2929, Val Loss: 0.2796, Train_acc: 0.8913, Val acc: 0.8929
-Epoch [3/10], Train Loss: 0.2508, Val Loss: 0.2484, Train_acc: 0.8968, Val acc: 0.8988
-Epoch [4/10], Train Loss: 0.2293, Val Loss: 0.2299, Train_acc: 0.9019, Val acc: 0.9048
-Epoch [5/10], Train Loss: 0.2150, Val Loss: 0.2170, Train_acc: 0.9070, Val acc: 0.9092
-Epoch [6/10], Train Loss: 0.2042, Val Loss: 0.2065, Train_acc: 0.9099, Val acc: 0.9143
-Epoch [7/10], Train Loss: 0.1951, Val Loss: 0.1984, Train_acc: 0.9134, Val acc: 0.9170
-Epoch [8/10], Train Loss: 0.1878, Val Loss: 0.1915, Train_acc: 0.9166, Val acc: 0.9187
-Epoch [9/10], Train Loss: 0.1822, Val Loss: 0.1860, Train_acc: 0.9182, Val acc: 0.9207
-Epoch [10/10], Train Loss: 0.1771, Val Loss: 0.1815, Train_acc: 0.9202, Val acc: 0.9225
+| Epoch | Train Loss | Val Loss | Train_acc | Val acc |
+|-------|------------|----------|-----------|---------|
+| 1/10  | 0.4531     | 0.3498   | 0.8766    | 0.8889  |
+| 2/10  | 0.2929     | 0.2796   | 0.8913    | 0.8929  |
+| 3/10  | 0.2508     | 0.2484   | 0.8968    | 0.8988  |
+| 4/10  | 0.2293     | 0.2299   | 0.9019    | 0.9048  |
+| 5/10  | 0.2150     | 0.2170   | 0.9070    | 0.9092  |
+| 6/10  | 0.2042     | 0.2065   | 0.9099    | 0.9143  |
+| 7/10  | 0.1951     | 0.1984   | 0.9134    | 0.9170  |
+| 8/10  | 0.1878     | 0.1915   | 0.9166    | 0.9187  |
+| 9/10  | 0.1822     | 0.1860   | 0.9182    | 0.9207  |
+| 10/10 | 0.1771     | 0.1815   | 0.9202    | 0.9225  |
+
+
 Training model: Inception_v3
-Epoch [1/10], Train Loss: 0.3602, Val Loss: 0.2870, Train_acc: 0.8758, Val acc: 0.8907
-Epoch [2/10], Train Loss: 0.2722, Val Loss: 0.2583, Train_acc: 0.8883, Val acc: 0.8932
-Epoch [3/10], Train Loss: 0.2481, Val Loss: 0.2376, Train_acc: 0.8951, Val acc: 0.8974
-Epoch [4/10], Train Loss: 0.2293, Val Loss: 0.2227, Train_acc: 0.9021, Val acc: 0.9027
-Epoch [5/10], Train Loss: 0.2165, Val Loss: 0.2094, Train_acc: 0.9069, Val acc: 0.9103
-Epoch [6/10], Train Loss: 0.2064, Val Loss: 0.2000, Train_acc: 0.9111, Val acc: 0.9135
-Epoch [7/10], Train Loss: 0.1993, Val Loss: 0.1938, Train_acc: 0.9140, Val acc: 0.9152
-Epoch [8/10], Train Loss: 0.1938, Val Loss: 0.1874, Train_acc: 0.9162, Val acc: 0.9183
-Epoch [9/10], Train Loss: 0.1904, Val Loss: 0.1826, Train_acc: 0.9172, Val acc: 0.9196
-Epoch [10/10], Train Loss: 0.1849, Val Loss: 0.1803, Train_acc: 0.9191, Val acc: 0.9201
+| Epoch | Train Loss | Val Loss | Train Acc | Val Acc |
+|-------|------------|----------|-----------|---------|
+| 1/10  | 0.3602     | 0.2870   | 0.8758    | 0.8907  |
+| 2/10  | 0.2722     | 0.2583   | 0.8883    | 0.8932  |
+| 3/10  | 0.2481     | 0.2376   | 0.8951    | 0.8974  |
+| 4/10  | 0.2293     | 0.2227   | 0.9021    | 0.9027  |
+| 5/10  | 0.2165     | 0.2094   | 0.9069    | 0.9103  |
+| 6/10  | 0.2064     | 0.2000   | 0.9111    | 0.9135  |
+| 7/10  | 0.1993     | 0.1938   | 0.9140    | 0.9152  |
+| 8/10  | 0.1938     | 0.1874   | 0.9162    | 0.9183  |
+| 9/10  | 0.1904     | 0.1826   | 0.9172    | 0.9196  |
+| 10/10 | 0.1849     | 0.1803   | 0.9191    | 0.9201  |
 
 ## ToDo List
 - [x] Model initialization using pretrained weights is generating a warning
