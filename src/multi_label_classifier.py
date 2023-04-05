@@ -206,3 +206,5 @@ if __name__ == '__main__':
         json_obj = json.dumps(predictions)
         with open(f'predictions/predictions_{models[model_arch].name}.json', 'w') as f:
             f.write(json_obj)
+            pd.DataFrame.from_dict(predictions, orient='index')
+            .to_csv('predictions/predictions_{models[model_arch].name}.csv')
