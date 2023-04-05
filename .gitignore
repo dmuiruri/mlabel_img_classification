@@ -21,6 +21,9 @@ __pycache__/
 
 # json report files for now
 *.json
+!predictions/predictions_Inception_v3.json
+!predictions/predictions_VGG16.json
+!predictions/predictions_Resnet50.json
 
 # slurm job script
 *.sh
