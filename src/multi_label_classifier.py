@@ -1,7 +1,7 @@
 import os
 import sys
 import torch
-
+import pandas as pd
 import torchvision.models as models
 from torchvision.models import ResNet50_Weights, VGG16_Weights, Inception_V3_Weights
 import numpy as np
@@ -61,7 +61,7 @@ class ModelCreator:
                 model_arch.fc = torch.nn.Sequential(
                     torch.nn.Linear(in_features=2048, out_features=1024),
                     torch.nn.ReLU(),
-                    torch.nn.Dropout(p=0.3),
+                    torch.nn.Dropout(p=0.4),
                     torch.nn.Linear(in_features=1024, out_features=self.num_classes))
                 self.models['Resnet50'] = model_arch
             elif model_arch.name ==  "VGG16":
@@ -92,11 +92,11 @@ def train_and_val_model(model, train_loader, val_loader):
     Train a multi-label model 
     """
     lr_rate = 1e-5
-    num_epochs = 10
+    num_epochs = 6
 
     # Define loss function (criterion) and optimizer
     criterion = torch.nn.BCEWithLogitsLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr_rate, weight_decay=0.001)
     model.to(device)
 
     for epoch in range(num_epochs):
@@ -183,7 +183,7 @@ if __name__ == '__main__':
     split = int(np.floor(validation_split * dataset_size))
 
     # May not want to shuffle due to class imbalance
-    np.random.shuffle(indices)
+    # np.random.shuffle(indices)
     train_indices, validation_indices = indices[split:], indices[:split]
 
     # Create training and validation samplers
@@ -206,5 +206,4 @@ if __name__ == '__main__':
         json_obj = json.dumps(predictions)
         with open(f'predictions/predictions_{models[model_arch].name}.json', 'w') as f:
             f.write(json_obj)
-            pd.DataFrame.from_dict(predictions, orient='index')
-            .to_csv('predictions/predictions_{models[model_arch].name}.csv')
+            pd.DataFrame.from_dict(predictions, orient='index').to_csv(f'predictions/predictions_{models[model_arch].name}.csv')
