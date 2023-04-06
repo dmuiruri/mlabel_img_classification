@@ -70,49 +70,18 @@ the accuracy of the validation set, this is atleast the expected
 behaviour.
 
 ## Results
-Results from training process 
-Training model: Resnet50
-| Epoch | Train Loss | Val Loss | Train acc | Val acc |
-|-------|------------|----------|-----------|---------|
-| 1/10  | 0.2582     | 0.1551   | 0.9056    | 0.9344  |
-| 2/10  | 0.1457     | 0.1239   | 0.9383    | 0.9485  |
-| 3/10  | 0.1139     | 0.1139   | 0.9530    | 0.9532  |
-| 4/10  | 0.0905     | 0.1122   | 0.9642    | 0.9549  |
-| 5/10  | 0.0718     | 0.1148   | 0.9724    | 0.9544  |
-| 6/10  | 0.0599     | 0.1195   | 0.9776    | 0.9530  |
-| 7/10  | 0.0503     | 0.1224   | 0.9811    | 0.9548  |
-| 8/10  | 0.0430     | 0.1241   | 0.9842    | 0.9546  |
-| 9/10  | 0.0364     | 0.1270   | 0.9867    | 0.9548  |
-| 10/10 | 0.0303     | 0.1347   | 0.9889    | 0.9552  |
+Latest results from training process 
 
-Training model: VGG16
-| Epoch | Train Loss | Val Loss | Train_acc | Val acc |
-|-------|------------|----------|-----------|---------|
-| 1/10  | 0.4531     | 0.3498   | 0.8766    | 0.8889  |
-| 2/10  | 0.2929     | 0.2796   | 0.8913    | 0.8929  |
-| 3/10  | 0.2508     | 0.2484   | 0.8968    | 0.8988  |
-| 4/10  | 0.2293     | 0.2299   | 0.9019    | 0.9048  |
-| 5/10  | 0.2150     | 0.2170   | 0.9070    | 0.9092  |
-| 6/10  | 0.2042     | 0.2065   | 0.9099    | 0.9143  |
-| 7/10  | 0.1951     | 0.1984   | 0.9134    | 0.9170  |
-| 8/10  | 0.1878     | 0.1915   | 0.9166    | 0.9187  |
-| 9/10  | 0.1822     | 0.1860   | 0.9182    | 0.9207  |
-| 10/10 | 0.1771     | 0.1815   | 0.9202    | 0.9225  |
+Based on the validation and accuracy curves, ResNet50 and Inception_V3
+appear to be overfitting but the VGG16 is not overfitting. Probably
+the regularization parameter settings should be different for each
+model.
 
+Key hyperparameter settings, all models have weight decay set at
+0.0001, Resnet50 and Inception have a dropout of 40% while VGG16 does
+not have dropout applied.
 
-Training model: Inception_v3
-| Epoch | Train Loss | Val Loss | Train Acc | Val Acc |
-|-------|------------|----------|-----------|---------|
-| 1/10  | 0.3602     | 0.2870   | 0.8758    | 0.8907  |
-| 2/10  | 0.2722     | 0.2583   | 0.8883    | 0.8932  |
-| 3/10  | 0.2481     | 0.2376   | 0.8951    | 0.8974  |
-| 4/10  | 0.2293     | 0.2227   | 0.9021    | 0.9027  |
-| 5/10  | 0.2165     | 0.2094   | 0.9069    | 0.9103  |
-| 6/10  | 0.2064     | 0.2000   | 0.9111    | 0.9135  |
-| 7/10  | 0.1993     | 0.1938   | 0.9140    | 0.9152  |
-| 8/10  | 0.1938     | 0.1874   | 0.9162    | 0.9183  |
-| 9/10  | 0.1904     | 0.1826   | 0.9172    | 0.9196  |
-| 10/10 | 0.1849     | 0.1803   | 0.9191    | 0.9201  |
+![Model performance comparison](./graphs/model_comparison.png)
 
 ## ToDo List
 - [x] Model initialization using pretrained weights is generating a warning
