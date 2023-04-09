@@ -48,7 +48,7 @@ class ModelCreator:
     def create_models(self):
         """Create models from different architectures
         """
-        for model_arch in [self.model_resnet50, self.model_inception_v3]: # self.model_vgg16,
+        for model_arch in [self.model_resnet50, self.model_vgg16, self.model_inception_v3]:
             # Freeze all layers except the final fully connected layer
             for param in model_arch.parameters():
                 param.requires_grad = False
@@ -72,7 +72,6 @@ class ModelCreator:
                 model_arch.fc = torch.nn.Sequential(
                     torch.nn.Linear(num_features, 1024),
                     torch.nn.ReLU(),
-                    torch.nn.Dropout(p=0.4),
                     torch.nn.Linear(1024, self.num_classes))
                 self.models['Inception_v3'] = model_arch
 
@@ -107,13 +106,14 @@ def train_and_val_model(model, train_loader, val_loader):
             images = batch['images'].to(device)
             labels = batch['labels'].to(device)
 
+            optimizer.zero_grad()
+
             outputs = model(images)
             if model.name == "Inception_v3":
                 outputs =  outputs.logits
             # calculate loss
             loss = criterion(outputs, labels)
 
-            optimizer.zero_grad()
             loss.backward()
 
             # update model parameters
