@@ -48,7 +48,7 @@ class ModelCreator:
     def create_models(self):
         """Create models from different architectures
         """
-        for model_arch in [self.model_resnet50, self.model_vgg16, self.model_inception_v3]:
+        for model_arch in [self.model_resnet50, self.model_inception_v3]: # self.model_vgg16,
             # Freeze all layers except the final fully connected layer
             for param in model_arch.parameters():
                 param.requires_grad = False
@@ -61,7 +61,6 @@ class ModelCreator:
                 model_arch.fc = torch.nn.Sequential(
                     torch.nn.Linear(in_features=2048, out_features=1024),
                     torch.nn.ReLU(),
-                    torch.nn.Dropout(p=0.4),
                     torch.nn.Linear(in_features=1024, out_features=self.num_classes))
                 self.models['Resnet50'] = model_arch
             elif model_arch.name ==  "VGG16":
