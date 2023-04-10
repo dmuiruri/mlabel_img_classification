@@ -23,8 +23,7 @@ class CustomDataset(data.Dataset):
         self.transform = transforms.Compose([
             transforms.Resize((size, size)), 
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) # mean=[116.022, 106.491, 95.719],std=[75.824, 72.377, 74.867]
-        ])
+            transforms.Normalize(mean=[116.022, 106.491, 95.719],std=[75.824, 72.377, 74.867])]) #mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225] 
 
         # Create a dictionary mapping classnames to the list of image filenames
         for filename in os.listdir(os.path.join(self.root_dir, "annotations")):
@@ -82,7 +81,7 @@ class TestDataset(data.Dataset):
         self.transform = transforms.Compose([
             transforms.Resize((size, size)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]) #mean=[116.022, 106.491, 95.719],std=[75.824, 72.377, 74.867]
+            transforms.Normalize(mean=[116.022, 106.491, 95.719],std=[75.824, 72.377, 74.867])]) #mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
         self.images = os.listdir(os.path.join(root_dir, "images"))
 
     def __len__(self):

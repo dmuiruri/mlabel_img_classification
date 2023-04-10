@@ -49,18 +49,19 @@ class ModelCreator:
         """Create models from different architectures
         """
         for model_arch in [self.model_resnet50, self.model_vgg16, self.model_inception_v3]:
-            # Freeze all layers except the final fully connected layer
+            # UnFreeze all layers except the final fully connected layer
             for param in model_arch.parameters():
-                param.requires_grad = False
+                param.requires_grad = True
             # Unfreeze some layers
-            for name, param in model_arch.named_parameters():
-                if "layer4" in name or "layer3" in name:
-                    param.requires_grad = True
+            # for name, param in model_arch.named_parameters():
+            #     if "layer4" in name or "layer3" in name:
+            #         param.requires_grad = True
             # Replace the final fully connected layer
             if model_arch.name ==  "Resnet50":
                 model_arch.fc = torch.nn.Sequential(
                     torch.nn.Linear(in_features=2048, out_features=1024),
                     torch.nn.ReLU(),
+                    torch.nn.Dropout(p=0.25),
                     torch.nn.Linear(in_features=1024, out_features=self.num_classes))
                 self.models['Resnet50'] = model_arch
             elif model_arch.name ==  "VGG16":
@@ -94,7 +95,13 @@ def train_and_val_model(model, train_loader, val_loader):
 
     # Define loss function (criterion) and optimizer
     criterion = torch.nn.BCEWithLogitsLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr_rate, weight_decay=0.001)
+    if model.name == 'Inception_v3':
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr_rate, eps=1e-3, weight_decay=0.001)
+    elif model.name == 'Resnet50':
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr_rate, eps=1e-3, weight_decay=0.0001)
+    elif model.name == 'VGG16':
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr_rate, weight_decay=0.0001)        
+        
     model.to(device)
 
     for epoch in range(num_epochs):
@@ -114,15 +121,14 @@ def train_and_val_model(model, train_loader, val_loader):
             # calculate loss
             loss = criterion(outputs, labels)
 
+            # backward pass + update model parameters
             loss.backward()
-
-            # update model parameters
             optimizer.step()
 
             # Calculate accuracy
             acc = accuracy(outputs, labels)
             train_acc += acc
-            train_loss += loss.item()
+            train_loss += loss.item() * images.size(0)
 
         # Validation
         model.eval()
@@ -134,7 +140,7 @@ def train_and_val_model(model, train_loader, val_loader):
                 acc = accuracy(outputs, labels)
                 loss = criterion(outputs, labels)
                 val_acc += acc
-                val_loss += loss.item()
+                val_loss += loss.item() * images.size(0)
         model.train()
         # Display results
         print('Epoch [{}/{}], Train Loss: {:.4f}, Val Loss: {:.4f}, Train_acc: {:.4f}, Val acc: {:.4f}'
