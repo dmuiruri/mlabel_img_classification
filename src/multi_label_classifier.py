@@ -96,9 +96,9 @@ def train_and_val_model(model, train_loader, val_loader):
     # Define loss function (criterion) and optimizer
     criterion = torch.nn.BCEWithLogitsLoss()
     if model.name == 'Inception_v3':
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr_rate, eps=1e-3, weight_decay=0.001)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr_rate, eps=1e-5, weight_decay=0.00001)
     elif model.name == 'Resnet50':
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr_rate, eps=1e-3, weight_decay=0.0001)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr_rate, eps=1e-5, weight_decay=0.0001)
     elif model.name == 'VGG16':
         optimizer = torch.optim.Adam(model.parameters(), lr=lr_rate, weight_decay=0.0001)        
         
