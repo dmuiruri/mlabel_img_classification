@@ -81,7 +81,7 @@ Key hyperparameter settings, all models have weight decay set at
 0.0001, Resnet50 and Inception have a dropout of 40% while VGG16 does
 not have dropout applied.
 
-![Model performance comparison](./graphs/model_comparison.png)
+![Model performance comparison](./graphs/model_comparison_v1.9.0.png)
 
 ## ToDo List
 - [x] Model initialization using pretrained weights is generating a warning
